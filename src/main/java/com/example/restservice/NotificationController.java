@@ -1,5 +1,6 @@
 package com.example.restservice;
 
+import com.microsoft.graph.requests.SubscriptionCollectionPage;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -40,20 +41,20 @@ import org.apache.commons.text.StringEscapeUtils;
 @RestController
 public class NotificationController {
     // region app registration information
-    private final String clientId = "";
-    private final String clientSecret = "";
-    private final String tenantId = "";
+    private final String clientId = "73980781-82f1-40fb-9529-4dac18dff6b6";
+    private final String clientSecret = "6n6.qQc~fP-2l68hD55Wzw4BAFeR5-du4_";
+    private final String tenantId = "11c462fd-078f-473d-8339-a96968bd744e";
     // endregion
     // region subscription information
-    private final String publicUrl = ""; // eg https://c2ddde53.ngrok.io no trailing slash
-    private final String resource = ""; // eg
+    private final String publicUrl = "https://d4216c0714ef.ngrok.io"; // eg https://c2ddde53.ngrok.io no trailing slash
+    private final String resource = "/communications/callRecords"; // eg
     // teams/9c05f27f-f866-4cc0-b4c2-6225a4568bc5/channels/19:015c392a3030451f8b52fac6084be56d@thread.skype/messages
     private final String changeType = "created";
     // endregion
     // region certificate information
     private final String storename = "JKSkeystore.jks";
     private final String alias = "selfsignedjks";
-    private final String storepass = "";
+    private final String storepass = "sapna_123";
     // endregion
 
     private final List<String> scopes = Arrays.asList("https://graph.microsoft.com/.default");
@@ -65,6 +66,7 @@ public class NotificationController {
     public String subscribe() throws KeyStoreException, FileNotFoundException, IOException, CertificateException,
             NoSuchAlgorithmException, InterruptedException, ExecutionException {
 
+        System.out.println("inside create subscrition");
         return createSubscription()
                         .thenApply(s -> getMessageToDisplay(s))
                         .get();
@@ -88,7 +90,45 @@ public class NotificationController {
         }
 
         return graphClient.subscriptions().buildRequest().postAsync(subscription);
+
+        /*
+
+
+         */
     }
+
+    @GetMapping("/delete")
+    @ResponseBody
+    public String delete() throws KeyStoreException, FileNotFoundException, IOException, CertificateException,
+            NoSuchAlgorithmException, InterruptedException, ExecutionException {
+
+        final ClientSecretCredential defaultCredential = new ClientSecretCredentialBuilder()
+                .clientId(clientId)
+                .clientSecret(clientSecret)
+                .tenantId(tenantId)
+                .build();
+
+        final IAuthenticationProvider authProvider = new TokenCredentialAuthProvider(this.scopes, defaultCredential);
+
+        GraphServiceClient graphClient = GraphServiceClient.builder().authenticationProvider( authProvider ).buildClient();
+
+        graphClient.subscriptions("fb1b405d-3ed2-4a34-a342-19c2c910ba1c").buildRequest().delete();
+
+
+        //graphClient.subscriptions().buildRequest().postAsync(subscriptions);
+
+        /*
+        GraphServiceClient graphClient = GraphServiceClient.builder().authenticationProvider( authProvider ).buildClient();
+
+        graphClient.subscriptions("7f105c7d-2dc5-4530-97cd-4e7ae6534c07")
+                .buildRequest()
+                .delete();
+                */
+
+        return null;
+
+    }
+
     @SuppressWarnings("unchecked")
     private GraphServiceClient<Request> getClient() {
         final ClientSecretCredential defaultCredential = new ClientSecretCredentialBuilder()
@@ -198,8 +238,10 @@ public class NotificationController {
             CertificateException, InvalidAlgorithmParameterException {
         final DefaultSerializer defaultSerializer = new DefaultSerializer(new DefaultLogger());
         final ChangeNotificationCollection notifications = defaultSerializer.deserializeObject(jsonString, ChangeNotificationCollection.class);
-        LOGGER.info("notification received");
+        LOGGER.info("notification received, "+jsonString);
         LOGGER.info(notifications.value.get(0).resource);
+        LOGGER.info(notifications.value.get(0).resource);
+
         final byte[] decryptedKey = this.GetEncryptionKey(notifications.value.get(0).encryptedContent.dataKey);
         final boolean isDataSignatureValid = this.IsDataSignatureValid(decryptedKey,
                 notifications.value.get(0).encryptedContent.data,
